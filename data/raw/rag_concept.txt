@@ -1,0 +1,1 @@
+Retrieval-Augmented Generation, or RAG, is an AI technique that retrieves relevant information before generating an answer.
