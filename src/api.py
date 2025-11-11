@@ -5,6 +5,11 @@ import json
 import faiss
 from sentence_transformers import SentenceTransformer
 
+import os
+from dotenv import load_dotenv
+import openai
+
+
 # ---------------------------
 # Initialize FastAPI app
 # ---------------------------
@@ -15,11 +20,13 @@ app = FastAPI(title="RAG QA Backend (Educational Version)")
 # ---------------------------
 INDEX_PATH = "index/faiss.index"
 META_PATH = "index/metadata.jsonl"
-
-print("🔍 Loading FAISS index and metadata...")
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
+print("Loading FAISS index and metadata...")
 index = faiss.read_index(INDEX_PATH)
 metadata = [json.loads(line) for line in open(META_PATH, "r", encoding="utf-8")]
-print(f"✅ Loaded index with {len(metadata)} chunks")
+print(f"Loaded index with {len(metadata)} chunks")
+
 
 # ---------------------------
 # Load embedding model
@@ -55,28 +62,38 @@ def retrieve(query: str, k: int = 3):
 # Helper: Simple local "generator"
 # ---------------------------
 def generate_answer(query: str, retrieved_chunks: list):
-    """
-    Simulate answer generation by combining retrieved chunks.
-    This is NOT an AI model — it's rule-based for educational purposes.
-    """
+    """Use OpenAI model to generate a grounded answer."""
     if not retrieved_chunks:
         return "I couldn’t find any relevant information."
 
-    # Combine the top retrieved chunks into one context string
-    context = " ".join([r["text"] for r in retrieved_chunks])
+    # Build context from retrieved text
+    context = "\n\n".join([r["text"] for r in retrieved_chunks])
 
-    # If query keywords appear in the context, summarize
-    if "fastapi" in query.lower() and "fastapi" in context.lower():
-        return "FastAPI is a high-performance Python framework for building APIs. It supports async, uses type hints, and is designed for speed and simplicity."
+    # Construct the prompt
+    prompt = f"""
+You are an AI assistant. Use ONLY the information in the context below to answer the question clearly and concisely.
 
-    elif "python" in query.lower():
-        return "Python is a general-purpose programming language widely used in web, data, and AI development."
+Context:
+{context}
 
-    elif "rag" in query.lower():
-        return "RAG (Retrieval-Augmented Generation) is an AI method that retrieves documents before generating an answer."
+Question: {query}
+Answer:
+"""
 
-    else:
-        return "Based on the context, I found the following relevant information:\n\n" + context
+    # Call OpenAI
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",  # Make sure to use a valid model name
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that gives factual answers."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.2,
+            max_tokens=300,
+        )
+        return response['choices'][0]['message']['content'].strip()
+    except Exception as e:
+        return f"Error generating answer: {e}"
 
 # ---------------------------
 # Endpoint: /query
