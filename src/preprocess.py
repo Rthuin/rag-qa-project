@@ -27,7 +27,7 @@ def preprocess(input_dir="data/raw", output_file="data/processed/chunks.jsonl"):
                 record = {"source": fname, "chunk_id": i, "text": chunk}
                 out.write(json.dumps(record, ensure_ascii=False) + "\n")
 
-    print(f"✅ Preprocessed {len(files)} files. Output saved to {output_file}")
+    print(f" Preprocessed {len(files)} files. Output saved to {output_file}")
 
 if __name__ == "__main__":
     preprocess()
