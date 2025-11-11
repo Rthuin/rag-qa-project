@@ -8,12 +8,23 @@ from sentence_transformers import SentenceTransformer
 import os
 from dotenv import load_dotenv
 import openai
-
+from fastapi.middleware.cors import CORSMiddleware
 
 # ---------------------------
 # Initialize FastAPI app
 # ---------------------------
 app = FastAPI(title="RAG QA Backend (Educational Version)")
+
+# ---------------------------
+# Add CORS Middleware
+# ---------------------------
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ---------------------------
 # Load FAISS index and metadata
